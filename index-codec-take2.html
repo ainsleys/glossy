@@ -1,0 +1,923 @@
+<!doctype html>
+<html lang = "en">
+  <head>
+    <title>Audio Chat VR</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0, shrink-to-fit=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <style>
+      body{
+        width:100%;
+        height:100%;
+        background-color: #000;
+        color: #fff;
+        margin:0px;
+        padding: 0;
+        overflow: hidden;
+      }
+    </style>
+  </head>
+  <body>
+  <audio></audio>
+   <!--  <ul id="messages"></ul>
+    <form action="">
+      <input id="m" autocomplete="off" /><button>Send</button>
+    </form>
+    
+   <button id="startRecording">Start</button>
+    <button id="stopRecording">Stop</button>
+    <button id="testBinary">Binary</button>
+    <input id="file" type="file" />-->
+    
+<script>
+/*
+ * Debug parameters.
+ */
+WebVRConfig = {
+  /**
+   * webvr-polyfill configuration
+   */
+  // Forces availability of VR mode.
+  //FORCE_ENABLE_VR: true, // Default: false.
+  // Complementary filter coefficient. 0 for accelerometer, 1 for gyro.
+  //K_FILTER: 0.98, // Default: 0.98.
+  // How far into the future to predict during fast motion.
+  //PREDICTION_TIME_S: 0.040, // Default: 0.040 (in seconds).
+  // Flag to disable touch panner. In case you have your own touch controls
+  //TOUCH_PANNER_DISABLED: true, // Default: false.
+  // Enable yaw panning only, disabling roll and pitch. This can be useful for
+  // panoramas with nothing interesting above or below.
+  //YAW_ONLY: true, // Default: false.
+  // Enable the deprecated version of the API (navigator.getVRDevices).
+  //ENABLE_DEPRECATED_API: true, // Default: false.
+  // Scales the recommended buffer size reported by WebVR, which can improve
+  // performance. Making this very small can lower the effective resolution of
+  // your scene.
+  BUFFER_SCALE: 0.5, // default: 1.0
+  // Allow VRDisplay.submitFrame to change gl bindings, which is more
+  // efficient if the application code will re-bind it's resources on the
+  // next frame anyway.
+  // Dirty bindings include: gl.FRAMEBUFFER_BINDING, gl.CURRENT_PROGRAM,
+  // gl.ARRAY_BUFFER_BINDING, gl.ELEMENT_ARRAY_BUFFER_BINDING,
+  // and gl.TEXTURE_BINDING_2D for texture unit 0
+  // Warning: enabling this might lead to rendering issues.
+  //DIRTY_SUBMIT_FRAME_BINDINGS: true // default: false
+};
+</script>
+
+<!--
+  A polyfill for Promises. Needed for IE and Edge.
+  -->
+<script src="es6-promise/dist/es6-promise.js"></script>
+
+<!--
+  three.js 3d library
+  -->
+<script src="three/build/three.js"></script>
+
+<!--
+  VRControls.js acquires positional information from connected VR devices and applies the transformations to a three.js camera object.
+   -->
+<script src="three/examples/js/controls/VRControls.js"></script>
+
+<!--
+  VREffect.js handles stereo camera setup and rendering.
+  -->
+<script src="three/examples/js/effects/VREffect.js"></script>
+
+<!--
+  A polyfill for WebVR using the Device{Motion,Orientation}Event API.
+  -->
+<script src="webvr-boilerplate/node_modules/webvr-polyfill/build/webvr-polyfill.js"></script>
+
+<!--
+  Helps enter and exit VR mode, provides best practices while in VR.
+  -->
+<script src="webvr-boilerplate/build/webvr-manager.js"></script>
+
+
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="socket.io-stream.js"></script>
+<script src="https://code.jquery.com/jquery-2.2.0.min.js"></script>
+<script src="recorder.min.js"></script>
+<script src="encoderWorker.min.js"></script>
+<script src="recorder.js"></script>
+
+
+
+<script>
+
+
+
+
+//BEGIN SOUND STUFF
+  var socket = io();
+  var recorder
+  var isRecording = false;
+  var isInitialized = false;
+  var preloadedSpheres = [];
+  var audio_context;
+  var recorder;
+
+
+
+//BEGIN THREEJS STUFF
+
+// Setup three.js WebGL renderer. Note: Antialiasing is a big performance hit.
+// Only enable it if you actually need to.
+var renderer = new THREE.WebGLRenderer({antialias: true});
+renderer.setPixelRatio(window.devicePixelRatio);
+// Append the canvas element created by the renderer to document body element.
+document.body.appendChild(renderer.domElement);
+// Create a three.js scene.
+var scene = new THREE.Scene();
+// Create a three.js camera.
+var camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
+var listener = new THREE.AudioListener();
+camera.add(listener);
+// Apply VR headset positional data to camera.
+var audioLoader = new THREE.AudioLoader();
+
+var cubes = [];
+var clock;
+
+var gamepadL, gamepadR;
+var gamepadO;
+var standingMatrix = new THREE.Matrix4();
+
+
+//figure out how to alter this for the vive through a check at the top?
+var controls = new THREE.VRControls(camera);
+controls.standing = true;
+// Apply VR stereo rendering to renderer.
+var effect = new THREE.VREffect(renderer);
+effect.setSize(window.innerWidth, window.innerHeight);
+var button0Lpressed = false;
+var button1Lpressed = false;
+var button2Lpressed = false;
+var button3Lpressed = false;
+var button0Rpressed = false;
+var button1Rpressed = false;
+var button2Rpressed = false;
+var button3Rpressed = false;
+
+
+
+
+
+
+window.addEventListener("keydown", handleInit, false);
+window.addEventListener("keydown", handleStart, false);
+window.addEventListener("keydown", handleStop, false);
+window.addEventListener("keydown", handleInit, false);
+
+function handleInit(e){
+  if (e.keyCode=="65"){
+    init();
+    console.log("A initializes the program");
+  }
+}
+
+function handleStart(e){
+  if (e.keyCode=="83"){
+    recorder && recorder.record();
+    console.log("this starts the program with S");
+  }
+}
+
+
+function handleStop(e){
+  if (e.keyCode=="71"){
+    recorder && recorder.stop();
+    console.log("G stops the program");
+    createDownloadLink();
+    recorder.clear();
+  }
+}
+
+
+
+
+
+function startUserMedia(stream) {
+    var input = audio_context.createMediaStreamSource(stream);
+
+
+    // Uncomment if you want the audio to feedback directly
+    //input.connect(audio_context.destination);
+    //__log('Input connected to audio context destination.');
+    
+    recorder = new Recorder(input);
+  }
+
+  function createDownloadLink() {
+    recorder && recorder.exportWAV(function(blob) {
+      console.log(blob);
+      var url = URL.createObjectURL(blob);
+      console.log(url);
+      //makeNewSphere(blob);
+      var li = document.createElement('li');
+      var au = document.createElement('audio');
+      var hf = document.createElement('a');
+      
+      au.controls = true;
+      au.src = url;
+      hf.href = url;
+      hf.download = new Date().toISOString() + '.wav';
+      hf.innerHTML = hf.download;
+      li.appendChild(au);
+      li.appendChild(hf);
+      recordingslist.appendChild(li);
+    });
+  }
+
+function init() {
+    try {
+      // webkit shim
+      window.AudioContext = window.AudioContext || window.webkitAudioContext;
+      navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia;
+      window.URL = window.URL || window.webkitURL;
+      
+      audio_context = new AudioContext;
+      __log('Audio context set up.');
+      __log('navigator.getUserMedia ' + (navigator.getUserMedia ? 'available.' : 'not present!'));
+    } catch (e) {
+      alert('No web audio support in this browser!');
+    }
+    
+    navigator.getUserMedia({audio: true}, startUserMedia, function(e) {
+      __log('No live audio input: ' + e);
+    });
+  };
+  </script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//this has to be refactored to account for attaching audio to spatial location
+    socket.on('return audio', function(practice){
+      var url = practice;
+
+      var audio = document.createElement('audio');
+      audio.controls = true;
+      console.log(url);
+      audio.src = url;
+
+      console.log('audio came from server A OK');
+    });
+
+  
+  //Includes message in the page itself
+    socket.on('chat message', function(msg){
+    $('#messages').append($('<li>').text(msg));
+  });
+
+//THREEJS STUFF WAS HERE
+
+
+
+
+// Add a repeating grid as a skybox.
+clock = new THREE.Clock();
+var boxSize = 5;
+var loader = new THREE.TextureLoader();
+loader.load('webvr-boilerplate/img/box.png', onTextureLoaded);
+function onTextureLoaded(texture) {
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(boxSize, boxSize);
+
+  var geometry = new THREE.BoxGeometry(boxSize, boxSize, boxSize);
+  var material = new THREE.MeshBasicMaterial({
+    map: texture,
+    color: 0x01BE00,
+    side: THREE.BackSide
+  });
+  // Align the skybox to the floor (which is at y=0).
+  skybox = new THREE.Mesh(geometry, material);
+  skybox.position.y = boxSize/2;
+  scene.add(skybox);
+  // For high end VR devices like Vive and Oculus, take into account the stage
+  // parameters provided.
+  setupStage();
+}
+// Create a VR manager helper to enter and exit VR mode.
+var params = {
+  hideButton: false, // Default: false.
+  isUndistorted: false // Default: false.
+};
+var manager = new WebVRManager(renderer, effect, params);
+
+
+// Create 3D objects.
+var geometry = new THREE.BoxGeometry(0.2, 0.2, 0.2);
+var material = new THREE.MeshNormalMaterial();
+var cube = new THREE.Mesh(geometry, material);
+var soundLoaderList = [];
+
+//removed htcvive gamepads, added oculus gamepads
+//ar gamepadL = new THREE.Mesh(new THREE.BoxGeometry(0.1,0.1,0.1), material);
+//var gamepadR = new THREE.Mesh(new THREE.BoxGeometry(0.1,0.1,0.1), material);
+var gamepadO = new THREE.Mesh(new THREE.BoxGeometry(0.1,0.1,0.1), material);
+
+console.log("3d objects are created");
+
+// Position cube mesh to be right in front of you.
+cube.position.set(0, controls.userHeight, -1);
+//gamepadL.position.set(-0.5, controls.userHeight, -1);
+//gamepadR.position.set(.5, controls.userHeight, -1);
+gamepadO.position.set(.5, controls.userHeight, -1);
+// Add cube mesh to your three.js scene
+scene.add(cube);
+//gamepadL
+//scene.add(gamepadL);
+//gamepadR
+//scene.add(gamepadR);
+//scene.add(preSphere);
+scene.add(gamepadO);
+
+
+//gamepad shit from arturitu
+
+function updateGamepads() {
+  //console.log(update Gamepads was called);
+
+  if ( ! display ) { //changed to display from vrD
+    console.log("Seems like there's no vr display detected");
+
+    return;
+
+  }
+  var delta = clock.getDelta();
+
+  //gamepadR.update(delta);
+  //gamepadL.update(delta);
+  //gamepadO.update(delta);
+  //console.log("The delta is "+ delta);
+
+  var gamepads = navigator.getGamepads();
+
+  var test1 = gamepads.length;
+  //console.log("There are "+ test1 + "Gamepads");
+  //console.log(gamepads.id);
+
+
+  for ( var i = 0; i < gamepads.length; ++ i ) {
+    //console.log("we're checking for gamepads");
+    //var testpad = Gamepad.id;
+    //console.log(testpad);
+        //window.addEventListener("gamepadconnected", function(e) {
+      //var gp = navigator.getGamepads()[gamepad.index];
+      //console.log("Gamepad connected at index %d: %s. %d buttons, %d axes.",
+      //gp.index, gp.id,
+      //gp.buttons.length, gp.axes.length);
+    //})
+
+
+    var gamepad = gamepads[i];
+    if ( gamepad && gamepad.pose ) {
+
+      var hand;
+      if ( i === 0 ) {
+
+        hand = gamepadO;
+        //hand = gamepadR;
+
+      }else {
+
+        hand = gamepadL;
+
+      }
+      // console.log( gamepad );
+      // Because this sample is done in standing space we need to apply
+      // the same transformation to the gamepad pose as we did the
+      // VRDisplay's pose.
+      // getPoseMatrix(gamepadMat, gamepad.pose);
+      updateGamepadPose(hand, gamepad.pose);
+      // Loop through all the gamepad's axes and rotate the cube by their
+      // value.
+      // console.log( gamepad );
+      //TODO implement trackpad control
+      // for ( var j = 0; j < gamepad.axes.length; ++ j ) {
+      //
+      //  switch ( j % 3 ) {
+      //    case 0:
+      //      // mat4.rotateX( gamepadMat, gamepadMat, gamepad.axes[ j ] * Math.PI );
+      //      // console.log( gamepad.axes[ j ] * Math.PI );
+      //      hand.applyMatrix( new THREE.Matrix4().makeRotationX( gamepad.axes[ j ] * Math.PI ) );
+      //      break;
+      //    case 1:
+      //      // mat4.rotateY( gamepadMat, gamepadMat, gamepad.axes[ j ] * Math.PI );
+      //      // console.log( gamepad.axes[ j ] * Math.PI );
+      //      hand.applyMatrix( new THREE.Matrix4().makeRotationY( gamepad.axes[ j ] * Math.PI ) );
+      //      break;
+      //    case 2:
+      //      // mat4.rotateZ( gamepadMat, gamepadMat, gamepad.axes[ j ] * Math.PI );
+      //      // console.log( gamepad.axes[ j ] * Math.PI );
+      //      hand.applyMatrix( new THREE.Matrix4().makeRotationZ( gamepad.axes[ j ] * Math.PI ) );
+      //      break;
+      //  }
+      //
+      // }
+
+      for ( var j = 0; j < gamepad.buttons.length; ++ j ) {
+
+        if ( gamepad.buttons[ j ].pressed ) {
+
+          //console.log("i detect button is pressed");
+
+          manageButtons( i, j, gamepad.buttons[ j ].value, gamepad.buttons[ j ].pressed );
+
+        }else {
+
+          //console.log("i detect button is maybe not pressed?");
+          manageButtons( i, j, gamepad.buttons[ j ].value, gamepad.buttons[ j ].pressed );
+
+        }
+
+      }
+
+    }
+
+  }
+
+}
+
+
+
+function manageButtons( handId, buttonId, intensity, pressed ) {
+  //console.log("manage buttons function was called");
+
+  if ( buttonId !== 0 && buttonId !==1 && buttonId !== 2 && buttonId !== 3 ) {
+    //console.log("nothing was pressed");
+    return;
+
+  }
+
+  //THESE WERE ALL FOR VIVE, need to be reassessed for OCULUS
+
+  // console.log( handId, buttonId, intensity, pressed );
+  // handId
+  // 0 - right
+  // 1 - left
+
+  // buttonId
+  // 0 - trackpad
+  // 1 - system ( never dispatched on this layer )
+  // 2 - trigger ( intensity value from 0.5 to 1 )
+  // 3 - grip
+  // 4 - menu ( dispatch but better for menu options )
+
+  // animations for each buttonId
+  // close - trigger
+  // rock - grip
+  // thumb - trackpad
+  var button0pressed;
+  var button2pressed;
+  var button3pressed;
+  var button1pressed;
+
+
+  if ( handId === 0 ) { //RIGHT
+
+    button0pressed = button0Rpressed;
+    button1pressed = button1Rpressed;
+    button2pressed = button2Rpressed;
+    button3pressed = button3Rpressed;
+
+  }else { //if the handID is 1, basically (LEFT)
+
+    button0pressed = button0Lpressed;
+    button1pressed = button1Lpressed;
+    button2pressed = button2Lpressed;
+    button3pressed = button3Lpressed;
+
+  }
+
+  //trigger = 2
+  //if (buttonId == 2 && )
+
+  //var counter = 0;
+  //var animation;
+ switch ( buttonId ) {
+    case 0:
+      if ( button0pressed === pressed ) {
+
+        return;
+
+      }
+      if ( handId === 0 ) { //RIGHT
+
+        button0Rpressed = pressed;
+        //initialize();
+        //recorder.start();
+
+      }else {
+
+        button0Lpressed = pressed;
+        //recorder.stop();
+
+      }
+      console.log("button 0 is being pressed");
+      //animation = 'thumb';
+      break;
+    case 2: //this is the trigger
+      if ( button2pressed === pressed ) {
+
+        return;
+
+      }
+      if ( handId === 0 ) { //RIGHT
+
+        button2Rpressed = pressed;
+
+      }else { //LEFT
+
+        button2Lpressed = pressed;
+
+
+      }
+      //animation = 'close';
+      //console.log("button 2 is being pressed");
+      break;
+    case 3:
+      if ( button3pressed === pressed ) {
+
+        return;
+
+      }
+      if ( handId === 0 ) {
+
+        button3Rpressed = pressed;
+
+      }else {
+
+        button3Lpressed = pressed;
+
+      }
+      //console.log("button 3 is being pressed");
+      //animation = 'rock';
+      break;
+
+    case 4:
+      if ( button1pressed === pressed ){
+
+        return;
+      }
+      if ( handId === 0){
+
+        button1Rpressed = pressed;
+
+      } else {
+
+        button1Lpressed = pressed;
+      }
+      //console.log("button 1 is being pressed");
+    break;
+
+  }
+
+  //if (button0Rpressed == pressed){
+    //initialize();
+    //recorder.start();
+    //console.log("Button3R is pressed");
+  //} else if (button3Lpressed == pressed){
+    //recorder.stop();
+    //console.log("Button 3L is pressed");
+  //}
+  //var timeScale = - 1;
+
+  //if ( pressed == button0Lpressed){
+  //  console.log("left circle was pressed")
+ // } else if ( pressed == button0Rpressed){
+ //   console.log("right circle was pressed")
+//  }
+//TRY THIS NEXT
+
+  // if ( pressed == button2Rpressed) {
+  //     console.log("Right trigger GETTING PRESSED!");
+  //     //timeScale = 1;
+  // } else if ( pressed == button2Rpressed){
+  //     console.log("Left trigger getting pressed");
+  // }
+
+
+
+  // if ( animation ) {
+
+  //   playOnce ( handId, animation, timeScale );
+
+  // }
+
+}
+
+function updateGamepadPose ( pad, pose ) {
+  //console.log("we got to update gamepad pose");
+
+  pad.quaternion.fromArray( pose.orientation );
+  pad.position.fromArray( pose.position );
+
+  if ( display.stageParameters ) { //changed display
+
+    pad.updateMatrix();
+
+    standingMatrix.fromArray( display.stageParameters.sittingToStandingTransform );//changed display
+    pad.applyMatrix( standingMatrix );
+    // pad.geometry.computeFaceNormals();
+    pad.geometry.computeVertexNormals();
+
+  }
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+// Kick off animation loop
+audioObjectReceiver();
+//populateAudio();
+requestAnimationFrame(animate);
+window.addEventListener('resize', onResize, true);
+window.addEventListener('vrdisplaypresentchange', onResize, true);
+
+
+//create object on spacebar
+function createAudioObject(){
+  var audioCube = new THREE.CubeGeometry(0.5, 0.5, 0.5);
+  var material_1 = new THREE.MeshBasicMaterial({
+    color: 0xffffff,
+  });
+
+  var mesh1= new THREE.Mesh(audioCube, material_1);
+  mesh1.position.set(camera.position.x, camera.position.y, camera.position.z);
+  scene.add(mesh1);
+
+
+  console.log("We got this far! (created mesh for audio object)")
+}
+
+//function audioObjectReceiver(audioObject){
+
+
+function makeNewSphere(audioObject){
+  var geometry = new THREE.SphereGeometry(0.1, 0.1, 0.1);
+  var material = new THREE.MeshBasicMaterial( {color: 0xFF0033});
+  var soundSphere = new THREE.Mesh( geometry, material);
+  pos_x = (camera.position.x - 0.3);
+  pos_y = camera.position.y;
+  console.log(pos_y);
+  pos_z = (camera.position.z - 0.3);
+  soundSphere.position.set(pos_x, pos_y, pos_z);
+  var id = ('_' + Math.random().toString(36).substr(2, 9));
+  socket.emit('positionTest', {id: id, position_x: soundSphere.position.x, position_y: soundSphere.position.y, position_z: soundSphere.position.z, audioObject: audioObject });
+  scene.add(soundSphere);
+
+}
+
+function existingAudio(){
+  //socket.on('databaseTest', function(oldSpheres){
+  //var url = practice;
+
+  // var audio = document.createElement('audio');
+  // audio.controls = true;
+  // console.log(url);
+  // audio.src = url;
+  socket.on('existingAudio', function(result){
+    console.log('some stuff happened in existinGaudio');
+  });
+}
+
+
+function audioObjectReceiver(){
+  console.log("I got called by the setupstage function audoObjRec")
+
+  //var audioLoader = new THREE.AudioLoader();
+  
+  socket.emit('audioObjectReceiver', { });
+  socket.on('audioObjectReceiver', function(audioObject){
+
+      console.log("audio object length is " + audioObject.length);
+
+      for (i = 0; i < audioObject.length; i++){
+
+          var pos_x = audioObject[i]['position_x'];
+          var pos_y = audioObject[i]['position_y'];
+          var pos_z = audioObject[i]['position_z'];
+          
+          var sgeometry = new THREE.SphereGeometry(0.1, 0.1, 0.1);
+          var smaterial = new THREE.MeshBasicMaterial( {color: 0xFF0033});
+          var preSphere = new THREE.Mesh(sgeometry, smaterial);
+
+          console.log("The audio object is " + audioObject[i]['audioObject']);
+
+          var soundFile = audioObject[i]['audioObject'];
+
+          var audioObjectId = audioObject[i]['id'];
+
+          var b64Data = soundFile;
+
+          var blob = b64toBlob(b64Data, 'audio/ogg');
+          var url = URL.createObjectURL(blob);
+
+          preSphere.position.set(pos_x, pos_y, pos_z);
+          preloadedSpheres.push({'id': audioObjectId, 'url': url, 'sphere': preSphere})
+
+          audioLo();
+      //scene.add(preSphere);
+    }
+
+  });
+  }
+
+function audioLo(){
+
+              var audioLoader = new THREE.AudioLoader();
+              var newSphere = preloadedSpheres[i]['sphere'] 
+              scene.add(newSphere);
+              var sound1 = new THREE.PositionalAudio( listener );
+              console.log("I , AUDIOLO, am running...");
+              audioLoader.load( preloadedSpheres[i]['url'], function( buffer ) {
+              sound1.setBuffer( buffer );
+              sound1.setRefDistance( .005 );
+              sound1.setVolume(0.5);
+              sound1.setLoop(true);
+              sound1.play();
+            });
+          
+            newSphere.add( sound1 );
+          }
+
+
+function b64toBlob(b64Data, contentType, sliceSize) {
+  contentType = contentType || '';
+  sliceSize = sliceSize || 512;
+
+  var byteCharacters = atob(b64Data);
+  var byteArrays = [];
+
+  for (var offset = 0; offset < byteCharacters.length; offset += sliceSize) {
+    var slice = byteCharacters.slice(offset, offset + sliceSize);
+
+    var byteNumbers = new Array(slice.length);
+    for (var i = 0; i < slice.length; i++) {
+      byteNumbers[i] = slice.charCodeAt(i);
+    }
+
+    var byteArray = new Uint8Array(byteNumbers);
+
+    byteArrays.push(byteArray);
+  }
+    
+  var blob = new Blob(byteArrays, {type: contentType});
+  return blob;
+}
+
+
+
+
+function onKeyUp(event){
+  if (event.keyCode == 32) {
+    createAudioObject();
+    //stopRecording();
+    console.log("Detected onkey up");
+  }
+}
+
+function manageAudio(){
+  console.log("Inside manage audio");
+
+  if (isRecording == false && isInitialized == false && button2Lpressed == true){
+    console.log("We're not recording, and you pressed button 2 L: this should initialize the process");
+    //console.log(isRecording);
+    //console.log(button2Lpressed);
+    isInitialized = true;
+    initialize();
+    
+    console.log("initializer called");
+    //stop recording
+  } else if (isRecording == false && isInitialized == true && button2Lpressed == true){
+    recorder.start();
+    isRecording = true;
+    console.log("recording started")
+    makeNewSphere();
+
+  } else if (isRecording == true && isInitialized == true && button2Rpressed == true){
+    console.log("We're recording, and you pressed button 2R");
+    recorder.stop();
+    isRecording = false;
+    console.log("recording should be ended.")
+  } else{
+    return;
+  }
+}
+
+
+// Request animation frame loop function
+var lastRender = 0;
+function animate(timestamp) {
+  var delta = Math.min(timestamp - lastRender, 500);
+  lastRender = timestamp;
+  // Apply rotation to cube mesh
+  cube.rotation.y += delta * 0.0006;
+  // Update VR headset position and apply to camera.
+  controls.update();
+  updateGamepads();
+  manageAudio();
+  //playSounds();
+  
+
+//perhaps this is where we should update the gamepad?
+
+  // Render the scene through the manager.
+  manager.render(scene, camera, timestamp);
+  requestAnimationFrame(animate);
+}
+
+
+function onResize(e) {
+  effect.setSize(window.innerWidth, window.innerHeight);
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+}
+
+
+var display;
+
+
+// Get the HMD, and if we're dealing with something that specifies
+// stageParameters, rearrange the scene.
+function setupStage() {
+  navigator.getVRDisplays().then(function(displays) {
+    if (displays.length > 0) {
+      display = displays[0];
+      console.log(display);
+      console.log("This is the setupstage function, preceeding text is display");
+      if (display.stageParameters) {
+        setStageDimensions(display.stageParameters);
+        console.log("this is a room-scale device !")
+        console.log(display.stageParameters);
+        console.log(display.getPose+ "this is the pose");
+      }
+    }
+  });
+}
+function setStageDimensions(stage) {
+  // Make the skybox fit the stage.
+  var material = skybox.material;
+  scene.remove(skybox);
+
+
+  // Size the skybox according to the size of the actual stage.
+  var geometry = new THREE.BoxGeometry(stage.sizeX, boxSize, stage.sizeZ);
+  skybox = new THREE.Mesh(geometry, material);
+
+
+  // Place it on the floor.
+  skybox.position.y = boxSize/2;
+  scene.add(skybox);
+  // Place the cube in the middle of the scene, at user height.
+  cube.position.set(0, controls.userHeight, 0);
+
+
+}
+
+
+
+
+
+
+
+
+</script>
+  </body>
+</html>
