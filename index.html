@@ -22,30 +22,8 @@
   <body>
   <audio></audio>
 
-   <!--  <ul id="messages"></ul>
-    <form action="">
-      <input id="m" autocomplete="off" /><button>Send</button>
-    </form>
-    
-   <button id="startRecording">Start</button>
-    <button id="stopRecording">Stop</button>
-    <button id="testBinary">Binary</button>
-    <input id="file" type="file" />-->
     
 <script>
-
-
-
-
-
-//TK
-//1-- ensure that the controller works with either hand, recording as long as it's held down for. If one is held down, the other should not cause any
-//activity. 
-//2-- check animation.
-//3-- should be able to record more than once in one session. Yet this doesn't work for the trigger?!
-//4-- record audio through space???
-
-
 
 
 
@@ -130,7 +108,6 @@ WebVRConfig = {
 
 
 
-//BEGIN SOUND STUFF
   var socket = io();
   //var recorder
   var isRecording = false;
@@ -143,81 +120,69 @@ WebVRConfig = {
   var firstTime = true;
     
 
+  var renderer = new THREE.WebGLRenderer({antialias: true});
+  renderer.setPixelRatio(window.devicePixelRatio);
+  // Append the canvas element created by the renderer to document body element.
+  document.body.appendChild(renderer.domElement);
+  // Create a three.js scene.
+  var scene = new THREE.Scene();
+  // Create a three.js camera.
+  var camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
+  var listener = new THREE.AudioListener();
+  camera.add(listener);
+  // Apply VR headset positional data to camera.
+  var audioLoader = new THREE.AudioLoader();
 
-//BEGIN THREEJS STUFF
+  var cubes = [];
+  var clock;
 
-// Setup three.js WebGL renderer. Note: Antialiasing is a big performance hit.
-// Only enable it if you actually need to.
-var renderer = new THREE.WebGLRenderer({antialias: true});
-renderer.setPixelRatio(window.devicePixelRatio);
-// Append the canvas element created by the renderer to document body element.
-document.body.appendChild(renderer.domElement);
-// Create a three.js scene.
-var scene = new THREE.Scene();
-// Create a three.js camera.
-var camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
-var listener = new THREE.AudioListener();
-camera.add(listener);
-// Apply VR headset positional data to camera.
-var audioLoader = new THREE.AudioLoader();
-
-var cubes = [];
-var clock;
-
-var gamepadL, gamepadR;
-//var gamepadO;
-var standingMatrix = new THREE.Matrix4();
+  var gamepadL, gamepadR;
+  //var gamepadO;
+  var standingMatrix = new THREE.Matrix4();
 
 
-//figure out how to alter this for the vive through a check at the top?
-var controls = new THREE.VRControls(camera);
-controls.standing = true;
-// Apply VR stereo rendering to renderer.
-var effect = new THREE.VREffect(renderer);
-effect.setSize(window.innerWidth, window.innerHeight);
-var button0Lpressed = false;
-var button1Lpressed = false;
-var button2Lpressed = false;
-var button3Lpressed = false;
-var button0Rpressed = false;
-var button1Rpressed = false;
-var button2Rpressed = false;
-var button3Rpressed = false;
+  //figure out how to alter this for the vive through a check at the top?
+  var controls = new THREE.VRControls(camera);
+  controls.standing = true;
+  // Apply VR stereo rendering to renderer.
+  var effect = new THREE.VREffect(renderer);
+  effect.setSize(window.innerWidth, window.innerHeight);
+  var button0Lpressed = false;
+  var button1Lpressed = false;
+  var button2Lpressed = false;
+  var button3Lpressed = false;
+  var button0Rpressed = false;
+  var button1Rpressed = false;
+  var button2Rpressed = false;
+  var button3Rpressed = false;
 
 
 
 
 
 
-window.addEventListener("keydown", handleInit, false);
-window.addEventListener("keydown", handleStart, false);
-window.addEventListener("keydown", handleStop, false);
-//window.addEventListener("keydown", handleInit, false);
+  window.addEventListener("keydown", handleInit, false);
+  //window.addEventListener("keydown", handleStart, false);
+  window.addEventListener("keydown", handleStop, false);
+  //window.addEventListener("keydown", handleInit, false);
 
+//
 function handleInit(e){
-  if (e.keyCode=="65"){
+  if (e.keyCode=="75"){
     init();
     isInitialized = true;
     visualizeRecording();
     //initialize also triggeres getusermedai...
-    console.log("A initializes the program");
-  }
-}
-
-function handleStart(e){
-  if (e.keyCode=="83"){
-    //recorder && recorder.record();
-    //isRecording = true;
-    console.log("this starts the program with S");
+    console.log("k initializes the program");
   }
 }
 
 
 function handleStop(e){
-  if (e.keyCode=="71"){
+  if (e.keyCode=="76"){
     isRecording = false;
     recorder && recorder.stop();
-    console.log("G stops the program");
+    console.log("L stops the program");
     removeVisualization();
     createDownloadLink();
     recorder.clear();

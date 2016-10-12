@@ -26,7 +26,6 @@ var path = require('path');
 var wav = require('wav');
 var ogg = require('ogg');
 var stringify = require('node-stringify');
-//var multer  = require('multer')
 var three = require('three');
 var webvrboilerplate = require('webvr-boilerplate');
 
@@ -84,29 +83,16 @@ io.on('connection', function(socket){
 		    	}
 
 
-		  	//console.log(res);
-		  	//console.log(res.length);
-		  	//console.log(res.typeOf);
         console.log("socket for audio obj receiver has been called")
 			});
 
 
-  		//fs.writeFile(practice, dataBlob, 'base64', function (err) {
-  		//	if (err) return console.log(err);
-  		//	console.log('dataBlob > practice');
-		//});
-
-  		//can we emit the file back lmao?
-		//io.emit('existingAudio', practice);
 
   	});
 
   	socket.on('positionTest', function(dataBlob){
-  		//console.log(typeof(dataBlob['audioMessage']));
   		var audioMessage1 = new audiomessage(dataBlob);
-  		//THIS isnt working!
-  		//console.log(dataBlob);
-  		//console.log(audioMessage1);
+
       console.log("position test is called")
 
 			audioMessage1.save(function (err, userObj) {
@@ -117,18 +103,8 @@ io.on('connection', function(socket){
 			    			console.log('dataBlob iD is: ', dataBlob['id']);
 			  			}
 					});
-  		//var test = stringify(dataBlob);
-  		//can we emit the file back lmao?
   	});
 
- //  	socket.on('databaseTest', function(existingAudio){
- //  		  	mongo.connect(url, function(err, db){
- //  			var collection = db.collection('audioMessages');
- //  			var result = collection.find({});
- //  		})
-
-	// 	io.emit('existingAudio', result);
-	// });
 
 
   	//server receives message from client
