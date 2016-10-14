@@ -101,8 +101,10 @@ io.on('connection', function(socket){
 			  			} else {
                 console.log("Trying tos ave audiomessage1");
 			    			console.log('dataBlob iD is: ', dataBlob['id']);
+                io.emit('positionTest', userObj);
 			  			}
 					});
+
   	});
 
 

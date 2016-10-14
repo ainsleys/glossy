@@ -108,6 +108,32 @@ WebVRConfig = {
 
 
 
+//NEW PLAN
+//create a "scene manager"
+//called when 'setupstage' is called
+//hm i don't think this is how websockets should be used
+//i guess it should only check the database ONE time, when it loads. 
+//thenceforth, it should add to the database (for new clients connecting), and perhaps an occasinal check to make sure no weirdness happened
+//client to client transmissions should happen instantly via emit and on
+//need 2 check socket stuff again...
+
+function sceneManager(){
+  //checks to see if the length of the array in the database is greater than the length of the objects in the scene
+  //if yes, then 
+  audioObjectReceiver();
+}
+
+
+
+
+
+
+
+
+
+
+
+
   var socket = io();
   //var recorder
   var isRecording = false;
@@ -169,7 +195,7 @@ WebVRConfig = {
 //
 function handleInit(e){
   if (e.keyCode=="75"){
-    init();
+    start();
     isInitialized = true;
     visualizeRecording();
     //initialize also triggeres getusermedai...
@@ -220,50 +246,11 @@ function startUserMedia(stream) {
     });
   }
 
-function init() {
-    console.log("we got to init");
-    //removed audio context stuff from here
-      try {
-      // webkit shim
-      window.AudioContext = window.AudioContext || window.webkitAudioContext;
-      navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia;
-      window.URL = window.URL || window.webkitURL;
-      console.log("tried to create a new audio context");
-      
-      audio_context = new AudioContext;
-    } catch (e) {
-      console.log(e);
-      alert('No web audio support in this browser! THIS IS MY OWN ERROR MESSAGE');
-    }
+function start() {
+    console.log("we got to start");
     navigator.getUserMedia({audio: true}, startUserMedia, function(e) {
     });
-  };
-
-
-
-
-
-//this has to be refactored to account for attaching audio to spatial location
-    socket.on('return audio', function(practice){
-      var url = practice;
-
-      var audio = document.createElement('audio');
-      audio.controls = true;
-      console.log(url);
-      audio.src = url;
-
-      console.log('audio came from server A OK');
-    });
-
-  
-  //Includes message in the page itself
-    socket.on('chat message', function(msg){
-    $('#messages').append($('<li>').text(msg));
-  });
-
-//THREEJS STUFF WAS HERE
-
-
+};
 
 
 // Add a repeating grid as a skybox.
@@ -339,11 +326,6 @@ function updateGamepads() {
   }
   var delta = clock.getDelta();
 
-  //gamepadR.update(delta);
-  //gamepadL.update(delta);
-  //gamepadO.update(delta);
-  //console.log("The delta is "+ delta);
-
   var gamepads = navigator.getGamepads();
 
   var test1 = gamepads.length;
@@ -352,15 +334,6 @@ function updateGamepads() {
 
 
   for ( var i = 0; i < gamepads.length; ++ i ) {
-    //console.log("we're checking for gamepads");
-    //var testpad = Gamepad.id;
-    //console.log(testpad);
-        //window.addEventListener("gamepadconnected", function(e) {
-      //var gp = navigator.getGamepads()[gamepad.index];
-      //console.log("Gamepad connected at index %d: %s. %d buttons, %d axes.",
-      //gp.index, gp.id,
-      //gp.buttons.length, gp.axes.length);
-    //})
 
 
     var gamepad = gamepads[i];
@@ -415,19 +388,6 @@ function manageButtons( handId, buttonId, intensity, pressed ) {
 
   }
 
-  //THESE WERE ALL FOR VIVE, need to be reassessed for OCULUS
-
-  // console.log( handId, buttonId, intensity, pressed );
-  // handId
-  // 0 - right
-  // 1 - left
-
-  // buttonId
-  // 0 - trackpad
-  // 1 - system ( never dispatched on this layer )
-  // 2 - trigger ( intensity value from 0.5 to 1 )
-  // 3 - grip
-  // 4 - menu ( dispatch but better for menu options )
 
   //this was complately wrong
   // 0 = trackpads
@@ -461,15 +421,6 @@ function manageButtons( handId, buttonId, intensity, pressed ) {
 
   }
 
-  //above was functioning chiral info
-
-  //trigger = 2
-  //if (buttonId == 2 && )
-
-  //var counter = 0;
-  //var animation;
-
-  //I THOUGHT THIS WAS WHERE I COULD CONTROL ETC
  switch ( buttonId ) {
     case 0: 
       if ( button0pressed === pressed ) {
@@ -524,8 +475,7 @@ function manageButtons( handId, buttonId, intensity, pressed ) {
         //one again removed handedness
 
       }
-      //animation = 'close';
-      //console.log("button 2 is being pressed");
+
       break;
     case 3:
       if ( button3pressed === pressed ) {
@@ -543,43 +493,10 @@ function manageButtons( handId, buttonId, intensity, pressed ) {
         button3Lpressed = pressed;
 
       }
-      //console.log("button 3 is being pressed");
-      //animation = 'rock';
+
       break;
 
   }
-
-  //if (button0Rpressed == pressed){
-    //initialize();
-    //recorder.start();
-    //console.log("Button3R is pressed");
-  //} else if (button3Lpressed == pressed){
-    //recorder.stop();
-    //console.log("Button 3L is pressed");
-  //}
-  //var timeScale = - 1;
-
-  //if ( pressed == button0Lpressed){
-  //  console.log("left circle was pressed")
- // } else if ( pressed == button0Rpressed){
- //   console.log("right circle was pressed")
-//  }
-//TRY THIS NEXT
-
-  // if ( pressed == button2Rpressed) {
-  //     console.log("Right trigger GETTING PRESSED!");
-  //     //timeScale = 1;
-  // } else if ( pressed == button2Rpressed){
-  //     console.log("Left trigger getting pressed");
-  // }
-
-
-
-  // if ( animation ) {
-
-  //   playOnce ( handId, animation, timeScale );
-
-  // }
 
 }
 
@@ -603,39 +520,38 @@ function updateGamepadPose ( pad, pose ) {
 }
 
 
+function init(){
+
+//removed audio context stuff from here
+      try {
+      // webkit shim
+      window.AudioContext = window.AudioContext || window.webkitAudioContext;
+      navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia;
+      window.URL = window.URL || window.webkitURL;
+      console.log("tried to create a new audio context");
+      
+      audio_context = new AudioContext;
+    } catch (e) {
+      console.log(e);
+      alert('No web audio support in this browser! THIS IS MY OWN ERROR MESSAGE');
+    }
 
 
-
-
-
-
+}
 
 
 
 
 
 // Kick off animation loop
-audioObjectReceiver();
+init();
+sceneManager();
 //populateAudio();
 requestAnimationFrame(animate);
 window.addEventListener('resize', onResize, true);
 window.addEventListener('vrdisplaypresentchange', onResize, true);
 
 
-//create object on spacebar
-function createAudioObject(){
-  var audioCube = new THREE.CubeGeometry(0.5, 0.5, 0.5);
-  var material_1 = new THREE.MeshBasicMaterial({
-    color: 0xffffff,
-  });
-
-  var mesh1= new THREE.Mesh(audioCube, material_1);
-  mesh1.position.set(camera.position.x, camera.position.y, camera.position.z);
-  scene.add(mesh1);
-
-
-  //console.log("We got this far! (created mesh for audio object)")
-}
 
 //function audioObjectReceiver(audioObject){
 
@@ -647,10 +563,10 @@ function visualizeRecording(){
   var geometry = new THREE.SphereGeometry(0.08, 0.08, 0.08);
   var material = new THREE.MeshBasicMaterial( {color: 0x7CFC00});
   recordingImage = new THREE.Mesh(geometry, material);
-  pos_x = camera.position.x -0.3
-  pos_y = camera.position.y;
+  pos_x = gamepadR.position.x;
+  pos_y = gamepadR.position.y;
   //console.log(pos_y);
-  pos_z = camera.position.z;
+  pos_z = gamepadR.position.z;
   scene.add(recordingImage);
   isVisualizing = true;
 }
@@ -663,15 +579,16 @@ function removeVisualization(){
 function recordingImageUpdate(){
   console.log("is isVisualizing true?" + isVisualizing);
   if (isVisualizing == true) {
-    pos_x = camera.position.x -0.3
-    pos_y = camera.position.y;
-    console.log(pos_y);
-    pos_z = camera.position.z;
+    pos_x = gamepadR.position.x;
+    pos_y = gamepadR.position.y;
+    pos_z = gamepadR.position.z;
     recordingImage.position.set(pos_x, pos_y, pos_z);
   } else {
     return;
   }
 }
+
+
 
 
 
@@ -687,22 +604,39 @@ function makeNewSphere(audioObject){
   soundSphere.position.set(pos_x, pos_y, pos_z);
   var id = ('_' + Math.random().toString(36).substr(2, 9));
   socket.emit('positionTest', {id: id, position_x: soundSphere.position.x, position_y: soundSphere.position.y, position_z: soundSphere.position.z, audioObject: audioObject });
-  scene.add(soundSphere);
+  //this is just the visuals. We should properly emit it for now.
+  //scene.add(soundSphere);
+  socket.on('positionTest', function(audioObject){
+      console.log("socket position test got called");
+          var pos_x = audioObject[i]['position_x'];
+          var pos_y = audioObject[i]['position_y'];
+          var pos_z = audioObject[i]['position_z'];
+          
+          var sgeometry = new THREE.SphereGeometry(0.1, 0.1, 0.1);
+          var smaterial = new THREE.MeshBasicMaterial( {color: 0xFF0033});
+          var preSphere = new THREE.Mesh(sgeometry, smaterial);
+
+          //console.log("The audio object is " + audioObject[i]['audioObject']);
+
+          var soundFile = audioObject[i]['audioObject'];
+
+          var audioObjectId = audioObject[i]['id'];
+
+          var b64Data = soundFile;
+
+          var blob = b64toBlob(b64Data, 'audio/wav');
+          var url = URL.createObjectURL(blob);
+
+          preSphere.position.set(pos_x, pos_y, pos_z);
+          preloadedSpheres.push({'id': audioObjectId, 'url': url, 'sphere': preSphere})
+
+          audioLo();
+  })
 
 }
 
-function existingAudio(){
-  //socket.on('databaseTest', function(oldSpheres){
-  //var url = practice;
 
-  // var audio = document.createElement('audio');
-  // audio.controls = true;
-  // console.log(url);
-  // audio.src = url;
-  socket.on('existingAudio', function(result){
-    console.log('some stuff happened in existinGaudio');
-  });
-}
+
 
 
 function audioObjectReceiver(){
@@ -747,9 +681,11 @@ function audioObjectReceiver(){
   }
 
 function audioLo(){
-              console.log("HOW COME WE NEVER GOT TO AUDIO LOADER? WHAT did i ever do to you");
+              //console.log("HOW COME WE NEVER GOT TO AUDIO LOADER? WHAT did i ever do to you");
               var audioLoader = new THREE.AudioLoader();
+
               var newSphere = preloadedSpheres[i]['sphere'] 
+              //console.log("the i for audioLo is "+ i);
               scene.add(newSphere);
               var sound1 = new THREE.PositionalAudio( listener );
               console.log("I , AUDIOLO, am running...");
@@ -792,48 +728,29 @@ function b64toBlob(b64Data, contentType, sliceSize) {
 
 
 
-function onKeyUp(event){
-  if (event.keyCode == 32) {
-    createAudioObject();
-    //stopRecording();
-    console.log("Detected onkey up");
-  }
-}
-
 
 //MANAGES AUDIO
 function manageAudio(){
   //console.log("Inside manage audio");
-
-  if (isRecording == false && isInitialized == false && button1Rpressed == true || button1Lpressed == true){
+//removed button1L ||
+  if (isRecording == false && isInitialized == false && button1Rpressed == true){
     console.log("We're not recording, and you pressed a button this should initialize the process");
-    //console.log(isRecording);
-    //console.log(button2Lpressed);
 
-    //THIS was causing memory overflow!
     isInitialized = true;
     isRecording = true;
     console.log("isInitialized is set to true");
     visualizeRecording();
-    init();
-    console.log("initializer called");
+    //we're calling init twice. Seems wrong no?
+    //init();
+//lets try commenting htis out
+
+    console.log("not calling init from manageAudio anymore");
     //stop recording
   } //possibly do not need this section!
-  //else if (isRecording == false && isInitialized == true && button2Lpressed == true){
-    
-
-
-    //old framework    
-    //recorder.start();
-
-
-   // isRecording = true;
-
-  //  console.log("you tried to start the recording")
-    //makeNewSphere();
-
- else if (isRecording == true && isInitialized == true && button1Lpressed == true || button1Rpressed == true){
-    console.log("We're recording, and you pressed left trigger");
+  //removed button1L ||
+  //removed button1L ||
+ else if (isRecording == true && isInitialized == true && button1Rpressed == true){
+    console.log("We're recording, and you pressed right trigger");
     recorder.stop();
     console.log("G stops the program");
     removeVisualization();
