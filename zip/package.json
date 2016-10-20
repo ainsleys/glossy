@@ -1,0 +1,22 @@
+{
+  "name": "socket-chat-example",
+  "version": "0.0.1",
+  "description": "my first socket.io app",
+  "dependencies": {
+    "es6-promise": "^3.2.1",
+    "express": "^4.10.2",
+    "mongodb": "^2.2.7",
+    "multer": "^1.2.0",
+    "node-opus": "^0.2.1",
+    "node-stringify": "0.0.19",
+    "ogg": "^1.2.5",
+    "opus-recorder": "^0.5.0",
+    "path": "^0.12.7",
+    "socket.io": "^1.4.8",
+    "socket.io-stream": "^0.9.0",
+    "stringify": "^5.1.0",
+    "three": "^0.79.0",
+    "wav": "^1.0.1",
+    "webvr-boilerplate": "^0.4.6"
+  }
+}

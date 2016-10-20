@@ -606,6 +606,7 @@ function makeNewSphere(audioObject){
   socket.emit('positionTest', {id: id, position_x: soundSphere.position.x, position_y: soundSphere.position.y, position_z: soundSphere.position.z, audioObject: audioObject });
   //this is just the visuals. We should properly emit it for now.
   //scene.add(soundSphere);
+  
   socket.on('positionTest', function(audioObject){
       console.log("socket position test got called");
           var pos_x = audioObject[i]['position_x'];

@@ -1,0 +1,60 @@
+
+upstream glossy {
+        #ip_hash;
+        server 127.0.0.1:3000;
+
+        #keepalive 8;
+}
+
+
+server {
+        listen 80;
+        server_name glossy.macrosaccade.com;
+        return 301 https://$host$request_uri;
+}
+server {
+        listen 443 ssl;
+
+        server_name glossy.macrosaccade.com;
+	
+        #ssl on;
+        ssl_certificate /etc/letsencrypt/live/macrosaccade.com-0001/fullchain.pem;
+        ssl_certificate_key /etc/letsencrypt/live/macrosaccade.com-0001/privkey.pem;
+
+        root /home/ubuntu/glossy/;
+        index index.html index.htm;
+        
+        server_name ec2-35–160-70-117.us-west-2.compute.amazonaws.com;
+       
+        location ~ /.well-known {
+                allow all;
+        }
+        
+        location /socket.io/ {
+              proxy_pass http://127.0.0.1:3000;
+              proxy_http_version 1.1;
+              proxy_set_header Upgrade $http_upgrade;
+              proxy_set_header Connection "upgrade";
+
+        }
+
+        location / {
+                alias /home/ubuntu/glossy/public/;
+                try_files $uri @glossy;
+        }
+        
+        location @glossy {
+                proxy_pass http://glossy;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header Host $host;
+                proxy_set_header X-NginX-Proxy true;
+
+                proxy_redirect off;
+
+                proxy_http_version 1.1;
+                proxy_set_header Upgrade $http_upgrade;
+                proxy_set_header Connection "upgrade";
+
+        }
+}

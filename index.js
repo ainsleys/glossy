@@ -3,6 +3,7 @@ var app = express();
 var mongo = require('mongodb').MongoClient;
 
 
+
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
 var fs = require('fs');
@@ -12,6 +13,7 @@ var fs = require('fs');
 var mongoose = require('mongoose');
 
 //Lets connect to our database using the DB server URL.
+mongoose.Promise = global.Promise;
 mongoose.connect('mongodb://localhost/my_database_name');
 
 var schema = new mongoose.Schema({id: String, position_x: Number, position_y: Number, position_z: Number, audioObject: Object});
@@ -57,7 +59,7 @@ app.get('/public/testpractice.ogg', function (req, res) {
 var url = 'mongodb://localhost:27017/my_database_name';
 
 //app.post('/audio/upload', upload.array('audio', )
-var practice = './public/testpractice.ogg'; //this should be the 
+//var practice = './public/testpractice.ogg'; //this should be the 
 
 //maybe there should be no io.on? Just socket on?
 io.on('connection', function(socket){
@@ -101,7 +103,8 @@ io.on('connection', function(socket){
 			  			} else {
                 console.log("Trying tos ave audiomessage1");
 			    			console.log('dataBlob iD is: ', dataBlob['id']);
-                io.emit('positionTest', userObj);
+                //test to see if it still crashes when I do this...
+                //io.emit('positionTest', userObj);
 			  			}
 					});
 
