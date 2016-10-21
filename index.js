@@ -67,9 +67,6 @@ io.on('connection', function(socket){
 
   	console.log('a user connected');
   	
-  	
-
-
 
   	socket.on('audioObjectReceiver', function(){
 		//finds EVERY audio object
@@ -78,14 +75,11 @@ io.on('connection', function(socket){
 		    	console.log(err);
 		  	} else if (userObj) {
 		  		var res = userObj;
-          console.log(res);
-		    	//console.log('Found:', res);
-          console.log("There are lots of user objects?");
+          //console.log(res);
 		    	io.emit('audioObjectReceiver', res)
-		    	}
+		    }
 
 
-        console.log("socket for audio obj receiver has been called")
 			});
 
 
@@ -94,19 +88,36 @@ io.on('connection', function(socket){
 
   	socket.on('positionTest', function(dataBlob){
   		var audioMessage1 = new audiomessage(dataBlob);
+      //console.log("the length of audiomessage is" + audiomessage.length);
 
-      console.log("position test is called")
+      //console.log("position test is called")
 
 			audioMessage1.save(function (err, userObj) {
 			  			if (err) {
 			    			console.log(err);
 			  			} else {
-                console.log("Trying tos ave audiomessage1");
-			    			console.log('dataBlob iD is: ', dataBlob['id']);
+                console.log("Succesfully saved audiomessage from within position test")
+                //console.log("Trying tos ave audiomessage1");
+			    			//console.log('dataBlob iD is: ', dataBlob['id']);
                 //test to see if it still crashes when I do this...
-                //io.emit('positionTest', userObj);
+                //io.emit('positionTest', userObj)
 			  			}
 					});
+
+      audiomessage.find({ }, function (err, userObj){
+        if (err) {
+          console.log(err);
+        } else if (userObj) {
+          var res = userObj;
+          console.log("the length of the userobj is " + userObj.length);
+          var z = userObj.length-1;
+          var send = res[z];
+          console.log("the object i'm trying to send is: " + send);
+          io.emit('positionTest', send);
+        }
+      })
+
+      //io.emit('positionTest', userObj)
 
   	});
 

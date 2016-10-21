@@ -144,7 +144,7 @@ function sceneManager(){
   var recordingImage;
   var isVisualizing = false;
   var firstTime = true;
-    
+d    
 
   var renderer = new THREE.WebGLRenderer({antialias: true});
   renderer.setPixelRatio(window.devicePixelRatio);
@@ -593,6 +593,7 @@ function recordingImageUpdate(){
 
 
 function makeNewSphere(audioObject){
+  //wondering if I need this?
   console.log("making a new sphere! adding to positiontest socket emission...")
   var geometry = new THREE.SphereGeometry(0.1, 0.1, 0.1);
   var material = new THREE.MeshBasicMaterial( {color: 0xFF0033});
@@ -603,15 +604,18 @@ function makeNewSphere(audioObject){
   pos_z = (camera.position.z - 0.3);
   soundSphere.position.set(pos_x, pos_y, pos_z);
   var id = ('_' + Math.random().toString(36).substr(2, 9));
+  console.log("At the current time --make new sphere-- which emits a new sphere object says audio object length is" + audioObject.length);
   socket.emit('positionTest', {id: id, position_x: soundSphere.position.x, position_y: soundSphere.position.y, position_z: soundSphere.position.z, audioObject: audioObject });
   //this is just the visuals. We should properly emit it for now.
   //scene.add(soundSphere);
-  
+
   socket.on('positionTest', function(audioObject){
       console.log("socket position test got called");
-          var pos_x = audioObject[i]['position_x'];
-          var pos_y = audioObject[i]['position_y'];
-          var pos_z = audioObject[i]['position_z'];
+
+
+          var pos_x = audioObject['position_x'];
+          var pos_y = audioObject['position_y'];
+          var pos_z = audioObject['position_z'];
           
           var sgeometry = new THREE.SphereGeometry(0.1, 0.1, 0.1);
           var smaterial = new THREE.MeshBasicMaterial( {color: 0xFF0033});
@@ -619,9 +623,10 @@ function makeNewSphere(audioObject){
 
           //console.log("The audio object is " + audioObject[i]['audioObject']);
 
-          var soundFile = audioObject[i]['audioObject'];
+          var soundFile = audioObject['audioObject'];
 
-          var audioObjectId = audioObject[i]['id'];
+          var audioObjectId = audioObject['id'];
+          console.log("the id of the object when we receive it from the server is "+ audioObjectId);
 
           var b64Data = soundFile;
 
@@ -630,9 +635,36 @@ function makeNewSphere(audioObject){
 
           preSphere.position.set(pos_x, pos_y, pos_z);
           preloadedSpheres.push({'id': audioObjectId, 'url': url, 'sphere': preSphere})
+          console.log("the id of the most recent sphere is "+ audioObjectId);
 
-          audioLo();
-  })
+      
+          var audioLoader = new THREE.AudioLoader();
+
+          var i = preloadedSpheres.length - 1;
+          console.log("The length of the preloadedSpheres is "+ preloadedSpheres.length)
+          console.log("the number of i is "+ i);
+          console.log("the id of the most recent sphere according to i calculations is "+ preloadedSpheres[i]['id']);
+
+          var newSphere = preloadedSpheres[i]['sphere'] 
+              //console.log("the i for audioLo is "+ i);
+          scene.add(newSphere);
+          var sound1 = new THREE.PositionalAudio( listener );
+          console.log("I , AUDIOLO, am running...");
+          //what if we get rid of the array entirely...
+          //audioLoader.load( preloadedSpheres[i]['url'], function( buffer ) {
+          audioLoader.load( url, function( buffer ) {
+            console.log("inside of the audioLoader, the i amounts to: "+ i);
+            console.log("and the id remains " + preloadedSpheres[i]['id']);
+            sound1.setBuffer( buffer );
+            sound1.setRefDistance( .005 );
+            sound1.setVolume(2);
+            sound1.setLoop(true);
+            sound1.play();
+          });
+          newSphere.add(sound1);
+        }
+
+  )
 
 }
 
@@ -647,10 +679,20 @@ function audioObjectReceiver(){
   
   socket.emit('audioObjectReceiver', { });
   socket.on('audioObjectReceiver', function(audioObject){
+  console.log('at the very beginning, the lenghth of audio object is ' + audioObject.length);
 
       console.log("audio object length is " + audioObject.length);
 
       for (i = 0; i < audioObject.length; i++){
+          sphereMakerWithSound(audioObject, i);
+          
+      //scene.add(preSphere);
+    }
+
+  });
+  }
+
+function sphereMakerWithSound(audioObject, i){
 
           var pos_x = audioObject[i]['position_x'];
           var pos_y = audioObject[i]['position_y'];
@@ -675,11 +717,7 @@ function audioObjectReceiver(){
           preloadedSpheres.push({'id': audioObjectId, 'url': url, 'sphere': preSphere})
 
           audioLo();
-      //scene.add(preSphere);
-    }
-
-  });
-  }
+}
 
 function audioLo(){
               //console.log("HOW COME WE NEVER GOT TO AUDIO LOADER? WHAT did i ever do to you");
@@ -691,12 +729,12 @@ function audioLo(){
               var sound1 = new THREE.PositionalAudio( listener );
               console.log("I , AUDIOLO, am running...");
               audioLoader.load( preloadedSpheres[i]['url'], function( buffer ) {
-              sound1.setBuffer( buffer );
-              sound1.setRefDistance( .005 );
-              sound1.setVolume(2);
-              sound1.setLoop(true);
-              sound1.play();
-            });
+                sound1.setBuffer( buffer );
+                sound1.setRefDistance( .005 );
+                sound1.setVolume(2);
+                sound1.setLoop(true);
+                sound1.play();
+              });
           
             newSphere.add( sound1 );
           }
