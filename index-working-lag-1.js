@@ -62,36 +62,6 @@ var url = 'mongodb://localhost:27017/my_database_name';
 //var practice = './public/testpractice.ogg'; //this should be the 
 
 //maybe there should be no io.on? Just socket on?
-
-function afterSaving(){
-        audiomessage.find({ }, function (err, userObj){
-        if (err) {
-          console.log(err);
-        } else if (userObj) {
-          var res = userObj;
-          //console.log("the userOBJ is" + userObj)
-          //console.log("the result of the userobj is " + userObj);
-          if (userObj.length > 0) {
-            var z = userObj.length - 1;
-            var send = res[z];
-            console.log("the z value is" + z);
-            console.log("the object i want to send is" + send)
-            //console.log("the object i'm trying to send is: " + send);
-          } else {
-            var z = 0;
-            console.log("This is the first time through. z should be zero, is it? " + z);
-            console.log("if z is zero, then we should be getting the first element" + userObj[0]);
-
-            var send = res[0];
-             //console.log("The object I'm trying to send is " + send)
-          }
-          io.emit('positionTest', send);
-          //console.log("each time i emit something print this let's see if it matches..." + send);
-        }
-      })
-
-}
-
 io.on('connection', function(socket){
 
 
@@ -127,7 +97,6 @@ io.on('connection', function(socket){
 			    			console.log(err);
 			  			} else {
                 console.log("Succesfully saved audiomessage from within position test")
-                afterSaving();
                 //console.log("Trying tos ave audiomessage1");
 			    			//console.log('dataBlob iD is: ', dataBlob['id']);
                 //test to see if it still crashes when I do this...
@@ -135,25 +104,18 @@ io.on('connection', function(socket){
 			  			}
 					});
 
-/*      audiomessage.find().sort({_id: -1});
-      audiomessage.find({ }, function (err, userObj) {
+      audiomessage.find({ }, function (err, userObj){
         if (err) {
           console.log(err);
-        } else if (userObj){
-          var res = userObj[0]
-          io.emit('positionTest', res);
+        } else if (userObj) {
+          var res = userObj;
+          console.log("the length of the userobj is " + userObj.length);
+          var z = userObj.length - 1;
+          var send = res[z];
+          console.log("the object i'm trying to send is: " + send);
+          io.emit('positionTest', send);
         }
-      })*/
-
-
-      //audiomessage.findOne({ }, )
-
-      //var latestMessage = 
-      //io.sockets.emit('positionTest', latestEntry);
-
-
-
-
+      })
 
       //io.emit('positionTest', userObj)
 

@@ -107,7 +107,7 @@ WebVRConfig = {
 
 
 
-//import { getAudioContext } from '../audio/AudioContext';
+
 //NEW PLAN
 //create a "scene manager"
 //called when 'setupstage' is called
@@ -116,8 +116,6 @@ WebVRConfig = {
 //thenceforth, it should add to the database (for new clients connecting), and perhaps an occasinal check to make sure no weirdness happened
 //client to client transmissions should happen instantly via emit and on
 //need 2 check socket stuff again...
-
-//var audioCount
 
 function sceneManager(){
   //checks to see if the length of the array in the database is greater than the length of the objects in the scene
@@ -133,7 +131,7 @@ function sceneManager(){
 
 
 
-  //var audioLoader = new THREE.AudioLoader();
+
 
 
   var socket = io();
@@ -141,12 +139,12 @@ function sceneManager(){
   var isRecording = false;
   var isInitialized = false;
   var preloadedSpheres = [];
-  var liveSpheres = [];
   var audio_context;
   var recorder;
   var recordingImage;
   var isVisualizing = false;
-  var firstTime = true;  
+  var firstTime = true;
+d    
 
   var renderer = new THREE.WebGLRenderer({antialias: true});
   renderer.setPixelRatio(window.devicePixelRatio);
@@ -159,7 +157,7 @@ function sceneManager(){
   var listener = new THREE.AudioListener();
   camera.add(listener);
   // Apply VR headset positional data to camera.
-  //var audioLoader = new THREE.AudioLoader();
+  var audioLoader = new THREE.AudioLoader();
 
   var cubes = [];
   var clock;
@@ -592,41 +590,30 @@ function recordingImageUpdate(){
 }
 
 
-function annotationMaker(){
 
-  //this just puts preloaded Spheres into the scene
-
-}
-
-function sphereMaker(audioObject){
-
-
-}
 
 
 function makeNewSphere(audioObject){
   //wondering if I need this?
   console.log("making a new sphere! adding to positiontest socket emission...")
-  //var geometry = new THREE.SphereGeometry(0.1, 0.1, 0.1);
-  //var material = new THREE.MeshBasicMaterial( {color: 0xFF0033});
-  //var soundSphere = new THREE.Mesh( geometry, material);
+  var geometry = new THREE.SphereGeometry(0.1, 0.1, 0.1);
+  var material = new THREE.MeshBasicMaterial( {color: 0xFF0033});
+  var soundSphere = new THREE.Mesh( geometry, material);
   pos_x = camera.position.x -0.3;
   pos_y = camera.position.y;
+  console.log(pos_y);
   pos_z = (camera.position.z - 0.3);
-  
-
-  //soundSphere.position.set(pos_x, pos_y, pos_z);
+  soundSphere.position.set(pos_x, pos_y, pos_z);
   var id = ('_' + Math.random().toString(36).substr(2, 9));
-  socket.emit('positionTest', {id: id, position_x: pos_x, position_y: pos_y, position_z: pos_z, audioObject: audioObject });
+  socket.emit('positionTest', {id: id, position_x: soundSphere.position.x, position_y: soundSphere.position.y, position_z: soundSphere.position.z, audioObject: audioObject });
   //this is just the visuals. We should properly emit it for now.
   //scene.add(soundSphere);
 
   socket.on('positionTest', function(audioObject){
       console.log("SOCKET POSITION TEST IS FIRING");
-      //sphereMaker(audioObject);
-      sphereMakerLive(audioObject);
 
-/*          var pos_x = audioObject['position_x'];
+
+          var pos_x = audioObject['position_x'];
           var pos_y = audioObject['position_y'];
           var pos_z = audioObject['position_z'];
           
@@ -642,103 +629,48 @@ function makeNewSphere(audioObject){
           console.log("the id of the object when we receive it from the server is "+ audioObjectId);
 
           var b64Data = soundFile;
+
           var blob = b64toBlob(b64Data, 'audio/wav');
           var url = URL.createObjectURL(blob);
-          console.log("the url outside of audio loader is" + url)
 
           preSphere.position.set(pos_x, pos_y, pos_z);
           preloadedSpheres.push({'id': audioObjectId, 'url': url, 'sphere': preSphere})
           console.log("the id of the most recent sphere is "+ audioObjectId);
-          //var i = preloadedSpheres.length - 1;
-      
 
-            //when i was trying to break this out...
+      
           var audioLoader = new THREE.AudioLoader();
 
-          scene.add(preSphere);
+          var i = preloadedSpheres.length - 1;
+          console.log("The length of the preloadedSpheres is "+ preloadedSpheres.length)
+          console.log("the number of i is "+ i);
+          console.log("the id of the most recent sphere according to i calculations is "+ preloadedSpheres[i]['id']);
 
-          var sound2 = new THREE.PositionalAudio( listener );
-
-          //FUNCTIONAL BUT LAGS AND CALLS 3X
+          var newSphere = preloadedSpheres[i]['sphere'] 
+              //console.log("the i for audioLo is "+ i);
+          scene.add(newSphere);
+          var sound1 = new THREE.PositionalAudio( listener );
+          //console.log("I , AUDIOLO, am running...");
+          //what if we get rid of the array entirely...
+          //audioLoader.load( preloadedSpheres[i]['url'], function( buffer ) {
           audioLoader.load( url, function( buffer ) {
             console.log("AUDIOLOADER INSIDE SOCKET POSITION TEST IS FIRING")
-            //console.log("inside of the audioLoader, the i amounts to: "+ i);
-            console.log("the url inside of audioloader is " + url);
+            console.log("inside of the audioLoader, the i amounts to: "+ i);
             //wow this is running the # of times new objects r created, i guess that is.. how a loader works?
             //read about audioloader jf c :|
-            //console.log("and the id remains " + preloadedSpheres[i]['id']);
-            sound2.setBuffer( buffer );
-            sound2.setRefDistance( .005 );
-            sound2.setVolume(2);
-            sound2.setLoop(true);
-            sound2.play();
+            console.log("and the id remains " + preloadedSpheres[i]['id']);
+            sound1.setBuffer( buffer );
+            sound1.setRefDistance( .005 );
+            sound1.setVolume(2);
+            sound1.setLoop(true);
+            sound1.play();
           });
+          newSphere.add(sound1);
+        }
 
-
-          preSphere.add(sound2);*/
-        });
-}
-
-function sphereMakerLive(audioObject){
-          console.log("sphereMakerLive was called this many times!")
-
-          var pos_x = audioObject['position_x'];
-          var pos_y = audioObject['position_y'];
-          var pos_z = audioObject['position_z'];
-          
-          var sgeometry = new THREE.SphereGeometry(0.1, 0.1, 0.1);
-          var smaterial = new THREE.MeshBasicMaterial( {color: 0xFF0033});
-          var preSphere = new THREE.Mesh(sgeometry, smaterial);
-
-          //console.log("The audio object is " + audioObject[i]['audioObject']);
-
-          var soundFile = audioObject['audioObject'];
-
-          var audioObjectId = audioObject['id'];
-
-          var b64Data = soundFile;
-
-          var blob = b64toBlob(b64Data, 'audio/wav');
-          var url = URL.createObjectURL(blob);
-
-          preSphere.position.set(pos_x, pos_y, pos_z);
-          preloadedSpheres.push({'id': audioObjectId, 'url': url, 'sphere': preSphere})
-          console.log("the length of preloaded Spheres is" + preloadedSpheres.length);
-          var newSphere = preloadedSpheres[preloadedSpheres.length -1];
-
-          audioLo2(newSphere);
-
+  )
 
 }
 
-function audioLo2(newSphere){
- console.log("AUDIOLO 222222 inside OF SOCKET POSITION TEST IS FIRING");
-              //console.log("HOW COME WE NEVER GOT TO AUDIO LOADER? WHAT did i ever do to you");
-              
-              //try makng this audioLoader global..
-              var audioLoader = new THREE.AudioLoader();
-              
-
-              //preloadedSpheres is a global variable
-
-              var liveSphere = newSphere['sphere']
-              //console.log("the i for audioLo is "+ i);
-              //console.log("THe i in preloaded spheres is " + i);
-              scene.add(liveSphere);
-              var sound1 = new THREE.PositionalAudio( listener );
-              //console.log("I , AUDIOLO, am running...");
-              audioLoader.load( newSphere['url'], function( buffer ) {
-                //console.log("The current url is" + preloadedSpheres[i]['url'])
-                sound1.setBuffer( buffer );
-                sound1.setRefDistance( .005 );
-                sound1.setVolume(2);
-                sound1.setLoop(true);
-                sound1.play();
-              });
-          
-            liveSphere.add( sound1 );
-
-}
 
 
 
@@ -752,11 +684,9 @@ function audioObjectReceiver(){
   socket.on('audioObjectReceiver', function(audioObject){
   console.log('at the very beginning, the lenghth of audio object is ' + audioObject.length);
 
-
       console.log("audio object length is " + audioObject.length);
 
       for (i = 0; i < audioObject.length; i++){
-          console.log("calling spheremaker to populate initial scene ")
           sphereMakerWithSound(audioObject, i);
           
       //scene.add(preSphere);
@@ -796,21 +726,14 @@ function sphereMakerWithSound(audioObject, i){
 function audioLo(){
               console.log("AUDIOLO OUTSIDE OF SOCKET POSITION TEST IS FIRING");
               //console.log("HOW COME WE NEVER GOT TO AUDIO LOADER? WHAT did i ever do to you");
-              
-              //try makng this audioLoader global..
               var audioLoader = new THREE.AudioLoader();
-              
-
-              //preloadedSpheres is a global variable
 
               var newSphere = preloadedSpheres[i]['sphere'] 
               //console.log("the i for audioLo is "+ i);
-              console.log("THe i in preloaded spheres is " + i);
               scene.add(newSphere);
               var sound1 = new THREE.PositionalAudio( listener );
               //console.log("I , AUDIOLO, am running...");
               audioLoader.load( preloadedSpheres[i]['url'], function( buffer ) {
-                //console.log("The current url is" + preloadedSpheres[i]['url'])
                 sound1.setBuffer( buffer );
                 sound1.setRefDistance( .005 );
                 sound1.setVolume(2);
@@ -820,7 +743,6 @@ function audioLo(){
           
             newSphere.add( sound1 );
           }
-
 
 
 function b64toBlob(b64Data, contentType, sliceSize) {
