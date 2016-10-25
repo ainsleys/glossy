@@ -13,6 +13,7 @@ You need a windows machine, an HTC Vive, a recent build of Chromium that support
 - Server configs (called glossy in configs) shows what I used to make socket.io, ec2, nginx, and node work together on Ubuntu 16.04
 - Give it a minute to load, it's a bit slow when loading many files. 
 - if you want to test this in my production environment just email me at sutherlande@gmail.com and I will make sure it's working and send you the link.
+- if you are running locally, it will run in localhost:3000, and the Mongodb is located in port 27017.
 
 
 ##ToDo
