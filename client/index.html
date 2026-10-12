@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+    <title>Glossy XR</title>
+    <style>
+      :root { color-scheme: dark; }
+      html, body { margin: 0; height: 100%; background: #000; color: #eee; font: 14px/1.4 system-ui, sans-serif; overflow: hidden; }
+      canvas { display: block; }
+      #hud {
+        position: fixed; top: 12px; left: 12px; z-index: 10;
+        background: rgba(0,0,0,.6); padding: 10px 12px; border-radius: 8px; max-width: 320px;
+      }
+      #hud label { display: block; margin: 6px 0 2px; color: #aaa; font-size: 12px; }
+      #hud input, #hud select { width: 100%; box-sizing: border-box; padding: 6px; border-radius: 4px; border: 1px solid #444; background: #111; color: #eee; }
+      #hud .row { display: flex; gap: 6px; align-items: center; }
+      #hud .row input[type=checkbox] { width: auto; }
+      #status { margin-top: 8px; font-size: 12px; color: #9f9; min-height: 1.2em; }
+      #rec { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #444; margin-right: 6px; vertical-align: middle; }
+      #rec.on { background: #f33; box-shadow: 0 0 8px #f33; }
+      #help { font-size: 12px; color: #888; margin-top: 8px; }
+      #hud a { color: #8cf; }
+      kbd { background: #222; border: 1px solid #555; border-radius: 3px; padding: 0 4px; font-size: 11px; }
+    </style>
+  </head>
+  <body>
+    <div id="hud">
+      <strong>Glossy XR</strong> <span id="count"></span>
+      <label for="author">Your name</label>
+      <input id="author" placeholder="e.g. Ainsley" autocomplete="off" />
+      <label for="layer">Layer</label>
+      <select id="layer">
+        <option value="default">default</option>
+        <option value="draft">draft</option>
+        <option value="review">review</option>
+        <option value="final">final</option>
+      </select>
+      <div class="row" style="margin-top:6px"><input type="checkbox" id="consent" /><label for="consent" style="margin:0">I consent to my recording being stored and shared</label></div>
+      <div id="status"><span id="rec"></span><span id="statusText">connecting…</span></div>
+      <div id="help">
+        Headset: trigger = record / stop, squeeze = cycle layer, point at a marker to play.<br />
+        Desktop: click to look, <kbd>W A S D</kbd> move, <kbd>K</kbd> start, <kbd>L</kbd> stop.
+        <a href="/api/export" target="_blank">Export JSON</a>
+      </div>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
